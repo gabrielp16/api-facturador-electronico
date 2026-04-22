@@ -1,0 +1,20 @@
+{
+  "invoiceId": "SETP98001",
+  "cufe": "79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234f0b5da2f0ac6a91b4ddf8abce0123f11",
+  "xml": "PD94bWwgdmVyc2lvbj0iMS4wIj8+...",
+  "signedXml": "PD94bWwgdmVyc2lvbj0iMS4wIj8+PHhtbDpJbnZvaWNlPi4uLjwveG1sOkludm9pY2U+",
+  "zipName": "SETP98001.zip",
+  "dian": {
+    "zipName": "SETP98001.zip",
+    "accepted": true,
+    "pending": false,
+    "rejected": false,
+    "trackId": "79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234",
+    "statusCode": "00",
+    "message": "Procesado Correctamente.",
+    "errors": []
+  },
+  "pdfBase64": "JVBERi0xLjcKJcTl8uXrp...",
+  "ticketBase64": "JVBERi0xLjcKJcTl8uXrp...",
+  "status": "VALIDATED"
+}

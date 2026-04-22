@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+         xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+         xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"
+         xmlns:sts="dian:gov:co:facturaelectronica:Structures-2-1"
+         xmlns:xades="http://uri.etsi.org/01903/v1.3.2#"
+         Id="invoice-root">
+  <ext:UBLExtensions>
+    <ext:UBLExtension>
+      <ext:ExtensionContent>
+        <sts:DianExtensions>
+          <sts:InvoiceControl>
+            <sts:InvoiceAuthorization>18760000001</sts:InvoiceAuthorization>
+            <sts:AuthorizationPeriod>
+              <cbc:StartDate>2026-01-01</cbc:StartDate>
+              <cbc:EndDate>2026-12-31</cbc:EndDate>
+            </sts:AuthorizationPeriod>
+            <sts:AuthorizedInvoices>
+              <sts:Prefix>SETP</sts:Prefix>
+              <sts:From>1</sts:From>
+              <sts:To>500000</sts:To>
+            </sts:AuthorizedInvoices>
+          </sts:InvoiceControl>
+          <sts:SoftwareProvider>
+            <sts:ProviderID schemeID="1">900999888</sts:ProviderID>
+            <sts:SoftwareID>00000000-0000-0000-0000-000000000000</sts:SoftwareID>
+          </sts:SoftwareProvider>
+          <sts:SoftwareSecurityCode>1a1d495ccd97da9b9c31ec0ed431e4f52a9bbf91d46d8b322190770285b41e2b8192c57184c6448f2efcb5d61e6bf5fe</sts:SoftwareSecurityCode>
+          <sts:QRCode>NumFac: SETP98001
+FecFac: 2026-04-20
+HorFac: 10:30:00-05:00
+NitFac: 900999888
+DocAdq: 1020304050
+ValFac: 145000.00
+ValIva: 27550.00
+ValOtroIm: 0.00
+ValTotFac: 172550.00
+CUFE: 79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234f0b5da2f0ac6a91b4ddf8abce0123f11</sts:QRCode>
+        </sts:DianExtensions>
+      </ext:ExtensionContent>
+    </ext:UBLExtension>
+    <ext:UBLExtension>
+      <ext:ExtensionContent Id="signature-extension-content">
+        <ds:Signature Id="signature-1234">
+          <ds:SignedInfo />
+          <ds:SignatureValue />
+          <ds:KeyInfo />
+          <ds:Object>
+            <xades:QualifyingProperties Target="#signature-1234">
+              <xades:SignedProperties Id="signed-properties-1234" />
+            </xades:QualifyingProperties>
+          </ds:Object>
+        </ds:Signature>
+      </ext:ExtensionContent>
+    </ext:UBLExtension>
+  </ext:UBLExtensions>
+  <cbc:UBLVersionID>UBL 2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>10</cbc:CustomizationID>
+  <cbc:ProfileID>DIAN 2.1: Factura Electrónica de Venta</cbc:ProfileID>
+  <cbc:ProfileExecutionID>2</cbc:ProfileExecutionID>
+  <cbc:ID>SETP98001</cbc:ID>
+  <cbc:UUID schemeID="2" schemeName="CUFE-SHA384">79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234f0b5da2f0ac6a91b4ddf8abce0123f11</cbc:UUID>
+  <cbc:IssueDate>2026-04-20</cbc:IssueDate>
+  <cbc:IssueTime>10:30:00-05:00</cbc:IssueTime>
+  <cbc:DueDate>2026-04-20</cbc:DueDate>
+  <cbc:InvoiceTypeCode>01</cbc:InvoiceTypeCode>
+  <cbc:DocumentCurrencyCode>COP</cbc:DocumentCurrencyCode>
+  <cbc:LineCountNumeric>2</cbc:LineCountNumeric>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="COP">27550.00</cbc:TaxAmount>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="COP">145000.00</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="COP">145000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="COP">172550.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="COP">172550.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+</Invoice>

@@ -1,0 +1,59 @@
+{
+  "saleOrderId": "SO-2026-000981",
+  "resolutionPrefix": "SETP",
+  "resolutionNumber": 98001,
+  "issueDateTime": "2026-04-20T10:30:00-05:00",
+  "paymentDueDate": "2026-04-20T10:30:00-05:00",
+  "paymentMeansCode": "10",
+  "currencyCode": "COP",
+  "notes": [
+    "Entrega ruta congelados norte",
+    "Pedido ERP ventas Morchis"
+  ],
+  "sendEmail": true,
+  "customer": {
+    "identificationType": "13",
+    "identificationNumber": "1020304050",
+    "legalName": "Laura Mendoza",
+    "email": "laura.mendoza@cliente.com",
+    "phone": "3001234567",
+    "address": "Cra 15 # 93-47",
+    "cityCode": "11001",
+    "cityName": "Bogota",
+    "departmentCode": "11",
+    "departmentName": "Bogota D.C.",
+    "countryCode": "CO",
+    "countryName": "Colombia"
+  },
+  "items": [
+    {
+      "sku": "PDB-500",
+      "description": "Pandebono congelado bolsa x 500 g",
+      "unitCode": "EA",
+      "quantity": 10,
+      "unitPrice": 8500,
+      "discountAmount": 2500,
+      "taxes": [
+        {
+          "code": "01",
+          "name": "IVA",
+          "percent": 19
+        }
+      ]
+    },
+    {
+      "sku": "WFL-6U",
+      "description": "Waffle congelado caja x 6 unidades",
+      "unitCode": "EA",
+      "quantity": 5,
+      "unitPrice": 12500,
+      "taxes": [
+        {
+          "code": "01",
+          "name": "IVA",
+          "percent": 19
+        }
+      ]
+    }
+  ]
+}

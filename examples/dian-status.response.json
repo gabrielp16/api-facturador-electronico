@@ -1,0 +1,17 @@
+{
+  "trackId": "9f8e0ad5-3129-4e4e-8df2-4479d2b01840",
+  "statusCode": "00",
+  "statusDescription": "Procesado Correctamente.",
+  "statusMessage": "La factura ha sido autorizada",
+  "documentKey": "79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234",
+  "isValid": true,
+  "errors": [],
+  "raw": {
+    "GetStatusResult": {
+      "StatusCode": "00",
+      "StatusDescription": "Procesado Correctamente.",
+      "StatusMessage": "La factura ha sido autorizada",
+      "XmlDocumentKey": "79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234"
+    }
+  }
+}
