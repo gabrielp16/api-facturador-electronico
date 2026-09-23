@@ -114,6 +114,99 @@ export class InvoicesService {
     return invoice as InvoiceRecord;
   }
 
+  async findAll(
+    page = 1,
+    limit = 20,
+    filters?: {
+      status?: InvoiceLifecycleStatus;
+      invoiceNumber?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ): Promise<{
+    items: InvoiceRecord[];
+    meta: { page: number; limit: number; totalItems: number; totalPages: number };
+  }> {
+    if (page < 1) {
+      throw new BadRequestException('Query param page must be greater than or equal to 1');
+    }
+
+    if (limit < 1 || limit > 100) {
+      throw new BadRequestException('Query param limit must be between 1 and 100');
+    }
+
+    const query: Record<string, any> = {};
+
+    if (filters?.status) {
+      if (!Object.values(InvoiceLifecycleStatus).includes(filters.status)) {
+        throw new BadRequestException('Query param status is not a valid invoice status');
+      }
+      query.status = filters.status;
+    }
+
+    if (filters?.invoiceNumber) {
+      query.invoiceNumber = {
+        $regex: this.escapeRegex(filters.invoiceNumber.trim()),
+        $options: 'i',
+      };
+    }
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      const createdAtRange: Record<string, Date> = {};
+
+      if (filters?.dateFrom) {
+        const parsedFrom = new Date(filters.dateFrom);
+        if (Number.isNaN(parsedFrom.getTime())) {
+          throw new BadRequestException('Query param dateFrom has invalid date format');
+        }
+        createdAtRange.$gte = parsedFrom;
+      }
+
+      if (filters?.dateTo) {
+        const parsedTo = new Date(filters.dateTo);
+        if (Number.isNaN(parsedTo.getTime())) {
+          throw new BadRequestException('Query param dateTo has invalid date format');
+        }
+
+        const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateOnlyPattern.test(filters.dateTo)) {
+          parsedTo.setHours(23, 59, 59, 999);
+        }
+
+        createdAtRange.$lte = parsedTo;
+      }
+
+      if (createdAtRange.$gte && createdAtRange.$lte && createdAtRange.$gte > createdAtRange.$lte) {
+        throw new BadRequestException('Query params dateFrom/dateTo define an invalid range');
+      }
+
+      query.createdAt = createdAtRange;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [items, totalItems] = await Promise.all([
+      this.invoiceModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      this.invoiceModel.countDocuments(query),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+
+    return {
+      items: items as InvoiceRecord[],
+      meta: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+      },
+    };
+  }
+
+  private escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   async getDianStatus(trackId: string): Promise<Record<string, any>> {
     return this.dianService.getStatus(trackId);
   }

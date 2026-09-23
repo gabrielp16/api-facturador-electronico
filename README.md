@@ -103,6 +103,28 @@ npm install
 npm run start:dev
 ```
 
+## Swagger
+
+Con la API levantada, la documentacion OpenAPI/Swagger queda disponible en:
+
+- `http://localhost:3002/api/v1/docs`
+
+Si cambia el puerto (`PORT`) o el prefijo (`API_PREFIX`), la ruta de Swagger se ajusta automaticamente a esos valores.
+
+## Recommended Runtime Versions
+
+Para esta version del proyecto (NestJS 12) se recomienda:
+
+- Node.js `20.x` LTS
+- npm `10.x`
+
+Puede validar versiones con:
+
+```bash
+node -v
+npm -v
+```
+
 ## Example Request
 
 Ver [examples/create-invoice.request.json](examples/create-invoice.request.json).

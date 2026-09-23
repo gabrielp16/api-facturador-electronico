@@ -4,7 +4,11 @@ export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   PORT: Joi.number().default(3000),
   API_PREFIX: Joi.string().default('api/v1'),
-  MONGODB_URI: Joi.string().required(),
+  MONGODB_URI: Joi.string().when('NODE_ENV', {
+    is: 'development',
+    then: Joi.string().default('mongodb://localhost:27017/morchis-dian'),
+    otherwise: Joi.string().required(),
+  }),
   LOG_LEVEL: Joi.string().default('log'),
   DIAN_ENVIRONMENT: Joi.string().valid('testing', 'production').required(),
   DIAN_PROFILE_EXECUTION_ID: Joi.string().valid('1', '2').required(),
@@ -47,6 +51,10 @@ export const envValidationSchema = Joi.object({
   MAIL_USER: Joi.string().required(),
   MAIL_PASS: Joi.string().required(),
   MAIL_FROM: Joi.string().required(),
-  PDF_OUTPUT_DIR: Joi.string().required(),
+  PDF_OUTPUT_DIR: Joi.string().when('NODE_ENV', {
+    is: 'development',
+    then: Joi.string().default('./tmp/pdf'),
+    otherwise: Joi.string().required(),
+  }),
   POS_PRINTER_WIDTH_MM: Joi.number().default(80),
 });
