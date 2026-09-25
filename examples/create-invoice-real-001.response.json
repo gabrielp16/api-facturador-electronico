@@ -1,0 +1,46 @@
+{
+  "saleOrderId": "SO-REAL-TEST-20260923-001",
+  "resolutionPrefix": "SETP",
+  "resolutionNumber": 98002,
+  "issueDateTime": "2026-09-23T10:45:00-05:00",
+  "paymentDueDate": "2026-09-23T10:45:00-05:00",
+  "paymentMeansCode": "10",
+  "currencyCode": "COP",
+  "notes": ["Prueba real DIAN habilitacion", "Generada desde API facturador"],
+  "sendEmail": false,
+  "customer": {
+    "identificationType": "13",
+    "identificationNumber": "1020304050",
+    "legalName": "Cliente Prueba Real",
+    "email": "cliente.prueba@correo.com",
+    "phone": "3001234567",
+    "address": "Cra 15 # 93-47",
+    "cityCode": "11001",
+    "cityName": "Bogota",
+    "departmentCode": "11",
+    "departmentName": "Bogota D.C.",
+    "countryCode": "CO",
+    "countryName": "Colombia"
+  },
+  "items": [
+    {
+      "sku": "PRD-TEST-001",
+      "description": "Producto prueba habilitacion",
+      "unitCode": "EA",
+      "quantity": 2,
+      "unitPrice": 25000,
+      "discountAmount": 0,
+      "taxes": [
+        {
+          "code": "01",
+          "name": "IVA",
+          "percent": 19
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "source": "ERP",
+    "channel": "API_TEST_REAL"
+  }
+}
