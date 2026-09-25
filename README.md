@@ -111,6 +111,120 @@ Con la API levantada, la documentacion OpenAPI/Swagger queda disponible en:
 
 Si cambia el puerto (`PORT`) o el prefijo (`API_PREFIX`), la ruta de Swagger se ajusta automaticamente a esos valores.
 
+## API Endpoints
+
+- `POST /api/v1/invoices/from-sale-order`: crea y envia factura electronica a DIAN.
+- `GET /api/v1/invoices`: lista facturas almacenadas con paginacion y filtros.
+- `GET /api/v1/invoices/:invoiceNumber`: consulta una factura por consecutivo.
+- `GET /api/v1/invoices/track/:trackId/status`: consulta estado DIAN por `trackId`.
+
+### cURL Quickstart
+
+Puede ejecutar estos comandos en terminal para pruebas manuales:
+
+```bash
+# 1) Crear factura DIAN desde orden de venta
+curl -X POST "http://localhost:3002/api/v1/invoices/from-sale-order" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "saleOrderId": "SO-REAL-TEST-20260923-001",
+    "resolutionPrefix": "SETP",
+    "resolutionNumber": 98002,
+    "issueDateTime": "2026-09-23T10:45:00-05:00",
+    "paymentDueDate": "2026-09-23T10:45:00-05:00",
+    "paymentMeansCode": "10",
+    "currencyCode": "COP",
+    "sendEmail": false,
+    "notes": ["Prueba DIAN habilitacion", "Creada desde cURL"],
+    "customer": {
+      "identificationType": "13",
+      "identificationNumber": "1020304050",
+      "legalName": "Cliente Prueba Real",
+      "email": "cliente.prueba@correo.com",
+      "phone": "3001234567",
+      "address": "Cra 15 # 93-47",
+      "cityCode": "11001",
+      "cityName": "Bogota",
+      "departmentCode": "11",
+      "departmentName": "Bogota D.C.",
+      "countryCode": "CO",
+      "countryName": "Colombia"
+    },
+    "items": [
+      {
+        "sku": "PRD-TEST-001",
+        "description": "Producto prueba habilitacion",
+        "unitCode": "EA",
+        "quantity": 2,
+        "unitPrice": 25000,
+        "discountAmount": 0,
+        "taxes": [
+          {
+            "code": "01",
+            "name": "IVA",
+            "percent": 19
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "source": "ERP",
+      "channel": "API_TEST_REAL"
+    }
+  }'
+
+# 2) Listar facturas con paginacion y filtros
+curl "http://localhost:3002/api/v1/invoices?page=1&limit=20&status=VALIDATED&invoiceNumber=SETP&dateFrom=2026-01-01&dateTo=2026-12-31"
+
+# 3) Consultar factura por consecutivo
+curl "http://localhost:3002/api/v1/invoices/SETP98002"
+
+# 4) Consultar estado DIAN por TrackId
+curl "http://localhost:3002/api/v1/invoices/track/79d8db7efc1f1d1fe0dcb7aaf5336e18f0eb6d8ff9c8cb2a8ec9db4dc6a1234/status"
+```
+
+### Listado de Facturas (Paginado)
+
+Endpoint: `GET /api/v1/invoices`
+
+Query params disponibles:
+
+- `page` (opcional, default `1`): numero de pagina.
+- `limit` (opcional, default `20`, rango `1..100`): tamano de pagina.
+- `status` (opcional): filtra por estado (`CREATED`, `XML_GENERATED`, `SIGNED`, `SUBMITTED`, `VALIDATED`, `REJECTED`).
+- `invoiceNumber` (opcional): busqueda parcial por consecutivo (case-insensitive).
+- `dateFrom` (opcional): fecha inicial de creacion (`YYYY-MM-DD` o ISO 8601).
+- `dateTo` (opcional): fecha final de creacion (`YYYY-MM-DD` o ISO 8601).
+
+Ejemplo:
+
+```http
+GET /api/v1/invoices?page=1&limit=20&status=VALIDATED&invoiceNumber=SETP&dateFrom=2026-01-01&dateTo=2026-12-31
+```
+
+Respuesta:
+
+```json
+{
+  "items": [
+    {
+      "invoiceNumber": "SETP98001",
+      "saleOrderId": "SO-2026-000981",
+      "cufe": "f9f6aa8d263b97e87e8f95dc31f63fe3f7f7049d2f0fd25f8f6a6aa25a8d541e",
+      "status": "VALIDATED"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "totalItems": 125,
+    "totalPages": 7
+  }
+}
+```
+
+Si los parametros son invalidos (por ejemplo `page < 1`, `limit > 100` o fechas invalidas), la API responde `400 Bad Request`.
+
 ## Recommended Runtime Versions
 
 Para esta version del proyecto (NestJS 12) se recomienda:
