@@ -1,7 +1,14 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import * as soap from 'soap';
+import { AppLogger } from '../../common/logger/app-logger.service';
 import { zipXmlToBase64 } from '../../common/utils/zip.util';
+import {
+  DianResponseParser,
+  DianStatusResponse,
+  DianSubmissionResponse,
+} from './dian-response.parser';
 
 interface SubmitInvoiceInput {
   invoiceNumber: string;
@@ -11,42 +18,119 @@ interface SubmitInvoiceInput {
 
 @Injectable()
 export class DianService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly logger: AppLogger,
+    private readonly responseParser: DianResponseParser,
+  ) {}
 
-  async submitInvoice(input: SubmitInvoiceInput): Promise<Record<string, any>> {
+  async submitInvoice(input: SubmitInvoiceInput): Promise<DianSubmissionResponse> {
     const sendMode = this.configService.get<string>('dian.sendMode');
     const zipName = `${input.invoiceNumber}.zip`;
     const contentFile = zipXmlToBase64(input.xmlFileName, input.signedXml);
+    const correlationId = this.newCorrelationId();
     const client = await this.createClient();
 
     try {
       if (sendMode === 'async') {
-        const [response] = await client.SendBillAsyncAsync({
-          fileName: zipName,
-          contentFile,
+        this.logInfo('submit_invoice_async_start', {
+          correlationId,
+          invoiceNumber: input.invoiceNumber,
+          zipName,
         });
 
-        return this.mapSubmissionResponse(response, zipName, true);
+        const [response] = await this.executeWithRetry<any[]>(
+          'SendBillAsync',
+          correlationId,
+          async () =>
+          this.withTimeout(
+            client.SendBillAsyncAsync({
+              fileName: zipName,
+              contentFile,
+            }),
+            this.getSoapTimeoutMs(),
+            'SendBillAsync',
+          ),
+        );
+
+        this.logInfo('submit_invoice_async_done', {
+          correlationId,
+          invoiceNumber: input.invoiceNumber,
+          zipName,
+        });
+
+        return this.responseParser.parseSubmissionResponse({
+          response,
+          zipName,
+          asyncMode: true,
+          correlationId,
+        });
       }
 
-      const [response] = await client.SendBillSyncAsync({
-        fileName: zipName,
-        contentFile,
+      this.logInfo('submit_invoice_sync_start', {
+        correlationId,
+        invoiceNumber: input.invoiceNumber,
+        zipName,
       });
 
-      return this.mapSubmissionResponse(response, zipName, false);
+      const [response] = await this.executeWithRetry<any[]>(
+        'SendBillSync',
+        correlationId,
+        async () =>
+        this.withTimeout(
+          client.SendBillSyncAsync({
+            fileName: zipName,
+            contentFile,
+          }),
+          this.getSoapTimeoutMs(),
+          'SendBillSync',
+        ),
+      );
+
+      this.logInfo('submit_invoice_sync_done', {
+        correlationId,
+        invoiceNumber: input.invoiceNumber,
+        zipName,
+      });
+
+      return this.responseParser.parseSubmissionResponse({
+        response,
+        zipName,
+        asyncMode: false,
+        correlationId,
+      });
     } catch (error) {
+      this.logError('submit_invoice_failed', error, {
+        correlationId,
+        invoiceNumber: input.invoiceNumber,
+        zipName,
+      });
       throw new InternalServerErrorException(`DIAN submission failed: ${error.message}`);
     }
   }
 
-  async getStatus(trackId: string): Promise<Record<string, any>> {
+  async getStatus(trackId: string): Promise<DianStatusResponse> {
+    const correlationId = this.newCorrelationId();
     const client = await this.createClient();
 
     try {
-      const [response] = await client.GetStatusAsync({ trackId });
-      return this.mapStatusResponse(response);
+      this.logInfo('get_status_start', { correlationId, trackId });
+
+      const [response] = await this.executeWithRetry<any[]>(
+        'GetStatus',
+        correlationId,
+        async () =>
+        this.withTimeout(
+          client.GetStatusAsync({ trackId }),
+          this.getSoapTimeoutMs(),
+          'GetStatus',
+        ),
+      );
+
+      this.logInfo('get_status_done', { correlationId, trackId });
+      return this.responseParser.parseStatusResponse({ response, correlationId });
     } catch (error) {
+      this.logError('get_status_failed', error, { correlationId, trackId });
       throw new InternalServerErrorException(`DIAN GetStatus failed: ${error.message}`);
     }
   }
@@ -58,76 +142,187 @@ export class DianService {
         ? this.configService.get<string>('dian.wsdlProd')
         : this.configService.get<string>('dian.wsdlTest');
 
+    const timeoutMs = this.getSoapTimeoutMs();
     const client = await soap.createClientAsync(wsdl, {
       endpoint: wsdl.replace('?wsdl', ''),
       forceSoap12Headers: true,
+      wsdl_options: {
+        timeout: timeoutMs,
+      },
     });
+
+    this.configureWsSecurity(client);
 
     return client;
   }
 
-  private mapSubmissionResponse(
-    response: Record<string, any>,
-    zipName: string,
-    asyncMode: boolean,
-  ): Record<string, any> {
-    if (asyncMode) {
-      const result = response?.SendBillAsyncResult || response?.sendBillAsyncResult || {};
+  private configureWsSecurity(client: any): void {
+    const wsSecurityEnabled = this.configService.get<string>('dian.wsSecurity.enabled') === 'true';
 
-      return {
-        zipName,
-        accepted: false,
-        pending: true,
-        rejected: false,
-        trackId: result?.ZipKey || result?.zipKey,
-        message: result?.Message || result?.message || 'Invoice submitted asynchronously to DIAN',
-        raw: response,
-      };
+    if (!wsSecurityEnabled) {
+      return;
     }
 
-    const result = response?.SendBillSyncResult || response?.sendBillSyncResult || {};
-    const statusCode =
-      result?.StatusCode ||
-      result?.statusCode ||
-      result?.['b:StatusCode'] ||
-      result?.statusMessage?.statusCode ||
-      '00';
-    const statusMessage =
-      result?.StatusDescription ||
-      result?.statusDescription ||
-      result?.StatusMessage ||
-      result?.statusMessage ||
-      'Processed';
-    const errors =
-      result?.ErrorMessage || result?.errorMessage || result?.ValidationErrors || result?.validationErrors;
+    const username = this.configService.get<string>('dian.wsSecurity.username');
+    const password = this.configService.get<string>('dian.wsSecurity.password');
+    const mustUnderstand =
+      this.configService.get<string>('dian.wsSecurity.mustUnderstand') !== 'false';
+    const hasTimeStamp =
+      this.configService.get<string>('dian.wsSecurity.hasTimeStamp') !== 'false';
+    const hasNonce = this.configService.get<string>('dian.wsSecurity.hasNonce') !== 'false';
 
-    return {
-      zipName,
-      accepted: statusCode === '00',
-      pending: false,
-      rejected: statusCode !== '00',
-      trackId: result?.XmlDocumentKey || result?.xmlDocumentKey || null,
-      statusCode,
-      message: statusMessage,
-      errors: Array.isArray(errors) ? errors : errors ? [errors] : [],
-      applicationResponse: result?.XmlBase64Bytes || result?.xmlBase64Bytes || null,
-      raw: response,
-    };
+    if (!username || !password) {
+      throw new InternalServerErrorException(
+        'WS-Security is enabled but DIAN WS-Security credentials are missing',
+      );
+    }
+
+    client.setSecurity(
+      new soap.WSSecurity(username, password, {
+        passwordType: 'PasswordText',
+        mustUnderstand,
+        hasTimeStamp,
+        hasNonce,
+      }),
+    );
   }
 
-  private mapStatusResponse(response: Record<string, any>): Record<string, any> {
-    const result = response?.GetStatusResult || response?.getStatusResult || {};
-    const errors = result?.ErrorMessage || result?.errorMessage || [];
-
-    return {
-      trackId: result?.ZipKey || result?.zipKey || null,
-      statusCode: result?.StatusCode || result?.statusCode || null,
-      statusDescription: result?.StatusDescription || result?.statusDescription || null,
-      statusMessage: result?.StatusMessage || result?.statusMessage || null,
-      documentKey: result?.XmlDocumentKey || result?.xmlDocumentKey || null,
-      isValid: (result?.StatusCode || result?.statusCode) === '00',
-      errors: Array.isArray(errors) ? errors : errors ? [errors] : [],
-      raw: response,
-    };
+  private getSoapTimeoutMs(): number {
+    const configured = this.configService.get<number>('dian.soap.timeoutMs');
+    return Number.isFinite(configured) && configured > 0 ? configured : 20000;
   }
+
+  private getMaxRetries(): number {
+    const configured = this.configService.get<number>('dian.soap.maxRetries');
+    if (!Number.isFinite(configured) || configured < 0) {
+      return 2;
+    }
+    return configured;
+  }
+
+  private getRetryBaseMs(): number {
+    const configured = this.configService.get<number>('dian.soap.retryBaseMs');
+    return Number.isFinite(configured) && configured > 0 ? configured : 400;
+  }
+
+  private getRetryMaxMs(): number {
+    const configured = this.configService.get<number>('dian.soap.retryMaxMs');
+    return Number.isFinite(configured) && configured > 0 ? configured : 4000;
+  }
+
+  private async executeWithRetry<T>(
+    operation: string,
+    correlationId: string,
+    task: () => Promise<T>,
+  ): Promise<T> {
+    const maxRetries = this.getMaxRetries();
+    const retryBaseMs = this.getRetryBaseMs();
+    const retryMaxMs = this.getRetryMaxMs();
+
+    let attempt = 0;
+    let lastError: any;
+
+    while (attempt <= maxRetries) {
+      try {
+        return await task();
+      } catch (error) {
+        lastError = error;
+        const retryable = this.isRetryableError(error);
+        const canRetry = retryable && attempt < maxRetries;
+
+        this.logWarn('soap_operation_error', {
+          correlationId,
+          operation,
+          attempt: attempt + 1,
+          maxAttempts: maxRetries + 1,
+          retryable,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+        });
+
+        if (!canRetry) {
+          break;
+        }
+
+        const waitMs = Math.min(retryMaxMs, retryBaseMs * 2 ** attempt + Math.floor(Math.random() * 250));
+        await this.delay(waitMs);
+        attempt += 1;
+      }
+    }
+
+    throw lastError;
+  }
+
+  private isRetryableError(error: any): boolean {
+    const retryableCodes = new Set([
+      'ETIMEDOUT',
+      'ESOCKETTIMEDOUT',
+      'ECONNRESET',
+      'ECONNREFUSED',
+      'EAI_AGAIN',
+      'ENOTFOUND',
+      'EHOSTUNREACH',
+      'SOAP_TIMEOUT',
+    ]);
+
+    if (retryableCodes.has(error?.code)) {
+      return true;
+    }
+
+    const message = String(error?.message || '').toLowerCase();
+    return (
+      message.includes('timeout') ||
+      message.includes('socket hang up') ||
+      message.includes('temporarily unavailable') ||
+      message.includes('econnreset')
+    );
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const timeoutError: any = new Error(`SOAP ${operation} timed out after ${timeoutMs}ms`);
+        timeoutError.code = 'SOAP_TIMEOUT';
+        reject(timeoutError);
+      }, timeoutMs);
+    });
+
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  private async delay(ms: number): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+  }
+
+  private newCorrelationId(): string {
+    return randomUUID();
+  }
+
+  private logInfo(event: string, details: Record<string, any>): void {
+    this.logger.log(JSON.stringify({ event, ...details }), 'DianService');
+  }
+
+  private logWarn(event: string, details: Record<string, any>): void {
+    this.logger.warn(JSON.stringify({ event, ...details }), 'DianService');
+  }
+
+  private logError(event: string, error: any, details: Record<string, any>): void {
+    const payload = {
+      event,
+      ...details,
+      errorMessage: error?.message,
+      errorCode: error?.code,
+      stack: error?.stack,
+    };
+    this.logger.error(JSON.stringify(payload), undefined, 'DianService');
+  }
+
 }

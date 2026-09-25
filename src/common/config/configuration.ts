@@ -29,6 +29,31 @@ export default () => ({
     qrTestUrl: process.env.DIAN_QR_TEST_URL,
     qrProdUrl: process.env.DIAN_QR_PROD_URL,
     technicalKey: process.env.DIAN_TECHNICAL_KEY,
+    soap: {
+      timeoutMs: toNumber(process.env.DIAN_SOAP_TIMEOUT_MS, 20000),
+      maxRetries: toNumber(process.env.DIAN_SOAP_MAX_RETRIES, 2),
+      retryBaseMs: toNumber(process.env.DIAN_SOAP_RETRY_BASE_MS, 400),
+      retryMaxMs: toNumber(process.env.DIAN_SOAP_RETRY_MAX_MS, 4000),
+    },
+    wsSecurity: {
+      enabled: process.env.DIAN_WS_SECURITY_ENABLED || 'false',
+      username: process.env.DIAN_WS_SECURITY_USERNAME,
+      password: process.env.DIAN_WS_SECURITY_PASSWORD,
+      mustUnderstand: process.env.DIAN_WS_SECURITY_MUST_UNDERSTAND || 'true',
+      hasTimeStamp: process.env.DIAN_WS_SECURITY_HAS_TIMESTAMP || 'true',
+      hasNonce: process.env.DIAN_WS_SECURITY_HAS_NONCE || 'true',
+    },
+    asyncReconciliation: {
+      enabled: process.env.DIAN_ASYNC_RECONCILIATION_ENABLED || 'false',
+      intervalMs: toNumber(process.env.DIAN_ASYNC_RECONCILIATION_INTERVAL_MS, 60000),
+      batchSize: toNumber(process.env.DIAN_ASYNC_RECONCILIATION_BATCH_SIZE, 20),
+    },
+    reprocessPolicy: {
+      allowedStatusCodes: process.env.DIAN_REPROCESS_ALLOWED_STATUS_CODES || '',
+      blockedStatusCodes: process.env.DIAN_REPROCESS_BLOCKED_STATUS_CODES || '',
+      blockedRuleCodePrefixes: process.env.DIAN_REPROCESS_BLOCKED_RULE_PREFIXES || '',
+      requireApprovalForBlocked: process.env.DIAN_REPROCESS_REQUIRE_APPROVAL_FOR_BLOCKED || 'true',
+    },
     company: {
       nit: process.env.DIAN_COMPANY_NIT,
       dv: process.env.DIAN_COMPANY_DV,
@@ -71,5 +96,15 @@ export default () => ({
   pdf: {
     outputDir: process.env.PDF_OUTPUT_DIR || './tmp/pdf',
     printerWidthMm: toNumber(process.env.POS_PRINTER_WIDTH_MM, 80),
+  },
+  integration: {
+    invoicesApiKey: process.env.INVOICES_API_KEY || 'dev-invoices-key',
+  },
+  auditArtifacts: {
+    csvSignature: {
+      enabled: process.env.CSV_SIGNATURE_ENABLED || 'false',
+      hmacSecret: process.env.CSV_SIGNATURE_HMAC_SECRET,
+      keyId: process.env.CSV_SIGNATURE_KEY_ID || 'csv-hmac-v1',
+    },
   },
 });

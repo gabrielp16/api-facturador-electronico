@@ -53,6 +53,26 @@ export class InvoiceRecord {
   @Prop({ required: true, type: Object })
   dianResponse: Record<string, any>;
 
+  @ApiPropertyOptional({ example: '99' })
+  @Prop({ type: String })
+  dianStatusCode?: string;
+
+  @ApiPropertyOptional({ type: [String], example: ['FAD06', 'CAD15'] })
+  @Prop({ type: [String], default: [] })
+  dianRuleCodes?: string[];
+
+  @ApiPropertyOptional({ example: '<ApplicationResponse ...>...</ApplicationResponse>' })
+  @Prop({ type: String })
+  applicationResponse?: string;
+
+  @ApiPropertyOptional({ example: '{"SendBillSyncResult": {...}}' })
+  @Prop({ type: String })
+  responseXml?: string;
+
+  @ApiPropertyOptional({ example: '<AttachedDocument ...>...</AttachedDocument>' })
+  @Prop({ type: String })
+  attachedDocumentXml?: string;
+
   @ApiProperty({ example: 'JVBERi0xLjQKJcTl8uXrp...' })
   @Prop({ type: String, required: true })
   pdfBase64: string;
@@ -64,9 +84,47 @@ export class InvoiceRecord {
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   @Prop({ type: Object })
   mailResult?: Record<string, any>;
+
+  @ApiPropertyOptional({ example: '2026-09-24T15:32:10.000Z' })
+  @Prop({ type: Date })
+  sentAt?: Date;
+
+  @ApiPropertyOptional({ example: '2026-09-24T15:32:14.000Z' })
+  @Prop({ type: Date })
+  validatedAt?: Date;
+
+  @ApiPropertyOptional({ example: '2026-09-24T15:33:00.000Z' })
+  @Prop({ type: Date })
+  emailedAt?: Date;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @Prop({ type: [Object], default: [] })
+  errors?: Array<Record<string, any>>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @Prop({ type: [Object], default: [] })
+  transitionHistory?: Array<Record<string, any>>;
+
+  @ApiPropertyOptional({ example: 1 })
+  @Prop({ type: Number, default: 0 })
+  reprocessCount?: number;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @Prop({ type: [Object], default: [] })
+  reprocessHistory?: Array<Record<string, any>>;
+
+  @ApiPropertyOptional({ example: 'POS_WEB' })
+  @Prop({ type: String })
+  requestSource?: string;
+
+  @ApiPropertyOptional({ example: 'usuario@empresa.com' })
+  @Prop({ type: String })
+  requestUser?: string;
 }
 
 export const InvoiceSchema = SchemaFactory.createForClass(InvoiceRecord);
 
 InvoiceSchema.index({ saleOrderId: 1 });
 InvoiceSchema.index({ cufe: 1 });
+InvoiceSchema.index({ dianStatusCode: 1 });
+InvoiceSchema.index({ dianRuleCodes: 1 });

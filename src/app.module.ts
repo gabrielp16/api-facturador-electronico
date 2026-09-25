@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './common/config/configuration';
 import { envValidationSchema } from './common/config/env.validation';
 import { LoggerModule } from './common/logger/logger.module';
+import { AttachedDocumentModule } from './modules/attached-document/attached-document.module';
 import { DianModule } from './modules/dian/dian.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -27,6 +28,7 @@ import { UblModule } from './modules/ubl/ubl.module';
       }),
     }),
     LoggerModule,
+    AttachedDocumentModule,
     QrModule,
     PdfModule,
     MailModule,

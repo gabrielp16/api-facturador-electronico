@@ -62,6 +62,13 @@ export class CreateInvoiceResponseDto {
 
   @ApiProperty({ enum: InvoiceLifecycleStatus, example: InvoiceLifecycleStatus.VALIDATED })
   status: InvoiceLifecycleStatus;
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    description: 'Indica si la respuesta fue reutilizada por idempotencia.',
+  })
+  idempotentReplay?: boolean;
 }
 
 export class DianStatusResponseDto extends DianSubmissionResponseDto {}

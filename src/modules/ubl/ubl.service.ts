@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { create } from 'xmlbuilder2';
 import { createHash } from 'crypto';
@@ -388,6 +388,13 @@ export class UblService {
           'cbc:PaymentDueDate': invoice.paymentDueDate,
           'cbc:PaymentID': invoice.saleOrderId,
         },
+        'cac:PaymentTerms': {
+          'cbc:ID': String(invoice.metadata?.paymentTermsId || '1'),
+          'cbc:PaymentMeansID': invoice.metadata?.paymentMeansCode || '10',
+          'cbc:Note':
+            String(invoice.metadata?.paymentTermsNote || '').trim() ||
+            (invoice.metadata?.paymentMeansCode === '10' ? 'Contado' : 'Credito'),
+        },
         'cac:TaxTotal': taxTotals,
         'cac:LegalMonetaryTotal': {
           'cbc:LineExtensionAmount': {
@@ -415,6 +422,47 @@ export class UblService {
       },
     };
 
-    return create(invoiceObject).end({ prettyPrint: true });
+    const xml = create(invoiceObject).end({ prettyPrint: true });
+    this.validateGeneratedInvoiceXml(xml);
+
+    return xml;
+  }
+
+  validateGeneratedInvoiceXml(xml: string): void {
+    if (!xml || typeof xml !== 'string') {
+      throw new BadRequestException('Generated XML is empty or invalid');
+    }
+
+    const requiredSnippets = [
+      '<Invoice',
+      '<ext:UBLExtensions',
+      '<cbc:UBLVersionID>UBL 2.1</cbc:UBLVersionID>',
+      '<cbc:ProfileExecutionID>',
+      '<cbc:UUID',
+      '<cbc:DocumentCurrencyCode>',
+      '<cac:AccountingSupplierParty>',
+      '<cac:AccountingCustomerParty>',
+      '<cac:PaymentMeans>',
+      '<cac:PaymentTerms>',
+      '<cac:TaxTotal>',
+      '<cac:LegalMonetaryTotal>',
+      '<cac:InvoiceLine>',
+    ];
+
+    const missing = requiredSnippets.filter((snippet) => !xml.includes(snippet));
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Generated XML is missing required DIAN/UBL nodes: ${missing.join(', ')}`,
+      );
+    }
+
+    const extensionsIdx = xml.indexOf('<ext:UBLExtensions');
+    const ublVersionIdx = xml.indexOf('<cbc:UBLVersionID>');
+
+    if (extensionsIdx === -1 || ublVersionIdx === -1 || extensionsIdx > ublVersionIdx) {
+      throw new BadRequestException(
+        'Generated XML has invalid node order: ext:UBLExtensions must appear before UBLVersionID',
+      );
+    }
   }
 }

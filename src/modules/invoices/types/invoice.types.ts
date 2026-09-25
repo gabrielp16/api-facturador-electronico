@@ -1,10 +1,43 @@
 export enum InvoiceLifecycleStatus {
+  DRAFT = 'DRAFT',
+  PENDING = 'PENDING',
   CREATED = 'CREATED',
   XML_GENERATED = 'XML_GENERATED',
+  SIGNING = 'SIGNING',
   SIGNED = 'SIGNED',
+  ZIPPED = 'ZIPPED',
+  SENDING = 'SENDING',
+  SENT = 'SENT',
   SUBMITTED = 'SUBMITTED',
   VALIDATED = 'VALIDATED',
   REJECTED = 'REJECTED',
+  PDF_GENERATED = 'PDF_GENERATED',
+  EMAILED = 'EMAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface InvoiceTransitionEntry {
+  status: InvoiceLifecycleStatus;
+  at: Date;
+  note?: string;
+}
+
+export interface InvoiceErrorEntry {
+  code?: string;
+  description: string;
+  source: 'DIAN' | 'SYSTEM';
+  raw?: any;
+}
+
+export interface InvoiceReprocessEntry {
+  at: Date;
+  reason?: string;
+  requestSource?: string;
+  requestUser?: string;
+  previousStatus?: InvoiceLifecycleStatus;
+  approvalTicket?: string;
+  approvedBy?: string;
+  policyDecision?: string;
 }
 
 export interface InvoiceTaxSummary {
@@ -60,9 +93,11 @@ export interface InvoiceProcessingResult {
   cufe: string;
   xml: string;
   signedXml: string;
+  attachedDocumentXml?: string;
   zipName: string;
   dian: Record<string, any>;
   pdfBase64: string;
   ticketBase64: string;
   status: InvoiceLifecycleStatus;
+  idempotentReplay?: boolean;
 }

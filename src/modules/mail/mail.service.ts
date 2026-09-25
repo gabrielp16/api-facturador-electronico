@@ -10,6 +10,7 @@ interface SendInvoiceEmailInput {
   cufe: string;
   pdfBase64: string;
   xmlBase64: string;
+  attachedDocumentBase64?: string;
 }
 
 @Injectable()
@@ -49,6 +50,15 @@ export class MailService {
             content: input.xmlBase64,
             encoding: 'base64',
           },
+          ...(input.attachedDocumentBase64
+            ? [
+                {
+                  filename: `${input.invoiceNumber}-AttachedDocument.xml`,
+                  content: input.attachedDocumentBase64,
+                  encoding: 'base64',
+                },
+              ]
+            : []),
         ],
       });
 
@@ -57,6 +67,7 @@ export class MailService {
         accepted: info.accepted,
         rejected: info.rejected,
         response: info.response,
+        sentAt: new Date().toISOString(),
       };
     } catch (error) {
       throw new InternalServerErrorException(`Invoice email delivery failed: ${error.message}`);
